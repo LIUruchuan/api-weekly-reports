@@ -30,9 +30,6 @@ concurrency:
 jobs:
   research-and-deploy:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: ⬇️ Checkout 仓库
@@ -70,11 +67,6 @@ jobs:
             git pull --rebase --autostash
             git push
           fi
-
-      - name: ⚙️ 配置 GitHub Pages
-        uses: actions/configure-pages@v5
-        with:
-          static_site_generator: html
 
       - name: 📤 Upload Pages Artifact
         uses: actions/upload-pages-artifact@v3
