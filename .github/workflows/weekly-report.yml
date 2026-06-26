@@ -89,13 +89,12 @@ jobs:
 
           DATE=$(date +'%Y-%m-%d')
           PAGE_URL="https://${{ github.repository_owner }}.github.io/api-weekly-reports/"
-          REPO_URL="${{ github.server_url }}/${{ github.repository }}"
 
           curl -s -X POST \
             "https://sctapi.ftqq.com/$SERVERCHAN_SENDKEY.send" \
             -H "Content-Type: application/json" \
             -d "{
-              \"title\": \"📡 API周报已生成 ($DATE)\",
-              \"desp\": \"### 免费API情报周报已更新\\n\\n**日期**: $DATE\\n\\n| 链接 | 地址 |\\n|------|------|\\n| 🌐 GitHub Pages | [$PAGE_URL]($PAGE_URL) |\\n| 📂 GitHub 仓库 | [$REPO_URL]($REPO_URL) |\\n| ⏱️ 运行时间 | $(date +'%Y-%m-%d %H:%M:%S') |\\n\\n---\\n\\n*[GitHub Actions](${{ github.server_url }}/${{ github.repository }}/actions) 自动生成*\\n\"
+              \"title\": \"API周报 (${DATE})\",
+              \"desp\": \"<h3>免费API & 大模型情报周报</h3><p><b>日期</b>: ${DATE}</p><p><a href='${PAGE_URL}'>查看完整报告 &rarr;</a></p><br/><hr/><p style='color:#999;font-size:12px;'>每周一 08:00 自动推送｜<a href='${PAGE_URL}'>GitHub Pages</a></p>\"
             }"
-          echo "✅ Server酱 通知已发送"
+          echo "Server酱 通知已发送"
