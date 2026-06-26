@@ -1,0 +1,107 @@
+name: 📡 免费API情报周报
+
+on:
+  schedule:
+    # 每周一 UTC 0:00 = 北京时间 08:00
+    - cron: '0 0 * * 1'
+  workflow_dispatch:
+    # 支持手动触发
+    inputs:
+      skip_notify:
+        description: '跳过 Server酱 通知'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+# 权限：允许写入内容 + 部署 Pages
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+# 防止并发冲突
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  research-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: ⬇️ Checkout 仓库
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🐍 设置 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 📦 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 🔍 运行调研脚本
+        id: research
+        run: |
+          python scripts/research.py
+          echo "status=done" >> $GITHUB_OUTPUT
+
+      - name: 💾 Commit 报告到仓库
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add reports/
+          # 只有当有变化时才 commit
+          if git diff --staged --quiet; then
+            echo "没有新内容，跳过 commit。"
+          else
+            git commit -m "📊 自动更新：$(date +'%Y-%m-%d') API周报"
+            git push
+          fi
+
+      - name: ⚙️ 配置 GitHub Pages
+        uses: actions/configure-pages@v5
+        with:
+          static_site_generator: html
+
+      - name: 📤 Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './reports'
+
+      - name: 🚀 部署到 GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: 🔔 Server酱 通知（可选）
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.skip_notify != 'true' }}
+        env:
+          SERVERCHAN_SENDKEY: ${{ secrets.SERVERCHAN_SENDKEY }}
+        run: |
+          if [ -z "$SERVERCHAN_SENDKEY" ]; then
+            echo "⚠️ 未配置 SERVERCHAN_SENDKEY，跳过通知。"
+            exit 0
+          fi
+
+          DATE=$(date +'%Y-%m-%d')
+          PAGE_URL="https://${{ github.repository_owner }}.github.io/api-weekly-reports/"
+          REPO_URL="${{ github.server_url }}/${{ github.repository }}"
+
+          curl -s -X POST \
+            "https://sctapi.ftqq.com/$SERVERCHAN_SENDKEY.send" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"title\": \"📡 API周报已生成 ($DATE)\",
+              \"desp\": \"### 免费API情报周报已更新\\n\\n**日期**: $DATE\\n\\n| 链接 | 地址 |\\n|------|------|\\n| 🌐 GitHub Pages | [$PAGE_URL]($PAGE_URL) |\\n| 📂 GitHub 仓库 | [$REPO_URL]($REPO_URL) |\\n| ⏱️ 运行时间 | $(date +'%Y-%m-%d %H:%M:%S') |\\n\\n---\\n\\n*[GitHub Actions](${{ github.server_url }}/${{ github.repository }}/actions) 自动生成*\\n\"
+            }"
+          echo "✅ Server酱 通知已发送"
