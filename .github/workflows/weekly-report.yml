@@ -81,20 +81,5 @@ jobs:
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.skip_notify != 'true' }}
         env:
           SERVERCHAN_SENDKEY: ${{ secrets.SERVERCHAN_SENDKEY }}
-        run: |
-          if [ -z "$SERVERCHAN_SENDKEY" ]; then
-            echo "⚠️ 未配置 SERVERCHAN_SENDKEY，跳过通知。"
-            exit 0
-          fi
-
-          DATE=$(date +'%Y-%m-%d')
-          PAGE_URL="https://${{ github.repository_owner }}.github.io/api-weekly-reports/"
-
-          curl -s -X POST \
-            "https://sctapi.ftqq.com/$SERVERCHAN_SENDKEY.send" \
-            -H "Content-Type: application/json" \
-            -d "{
-              \"title\": \"API周报 (${DATE})\",
-              \"desp\": \"<h3>免费API & 大模型情报周报</h3><p><b>日期</b>: ${DATE}</p><p><a href='${PAGE_URL}'>查看完整报告 &rarr;</a></p><br/><hr/><p style='color:#999;font-size:12px;'>每周一 08:00 自动推送｜<a href='${PAGE_URL}'>GitHub Pages</a></p>\"
-            }"
+        run: python3 scripts/send_notify.py "API周报"
           echo "Server酱 通知已发送"
