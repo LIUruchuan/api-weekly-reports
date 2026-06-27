@@ -220,47 +220,61 @@ def update_index_html():
         [f for f in os.listdir(REPORTS_DIR) if f.endswith(".md")],
         reverse=True,
     )
+    beijing = datetime.now(timezone(timedelta(hours=8)))
+    update_time = beijing.strftime("%Y-%m-%d %H:%M")
 
-    html_parts = []
-    html_parts.append("<!DOCTYPE html>")
-    html_parts.append('<html lang="zh-CN">')
-    html_parts.append("<head>")
-    html_parts.append('  <meta charset="UTF-8">')
-    html_parts.append('  <meta name="viewport" content="width=device-width, initial-scale=1.0">')
-    html_parts.append("  <title>免费API情报周报目录</title>")
-    html_parts.append("  <style>")
-    html_parts.append("    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background: #f5f5f5; }")
-    html_parts.append("    h1 { color: #333; border-bottom: 2px solid #4a90d9; padding-bottom: 10px; }")
-    html_parts.append("    .report-list { list-style: none; padding: 0; }")
-    html_parts.append("    .report-item { background: white; margin: 8px 0; padding: 12px 16px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); transition: transform 0.1s; }")
-    html_parts.append("    .report-item:hover { transform: translateX(4px); }")
-    html_parts.append("    .report-item a { color: #4a90d9; text-decoration: none; font-size: 16px; }")
-    html_parts.append("    .report-item a:hover { text-decoration: underline; }")
-    html_parts.append("    .report-date { color: #888; font-size: 13px; margin-left: 8px; }")
-    html_parts.append("    .footer { margin-top: 30px; color: #aaa; font-size: 13px; text-align: center; }")
-    html_parts.append("  </style>")
-    html_parts.append("</head>")
-    html_parts.append("<body>")
-    html_parts.append("  <h1>📡 免费API & 大模型情报周报</h1>")
-
+    report_items = ""
     if md_files:
-        html_parts.append("  <ul class='report-list'>")
         for fname in md_files:
             date_part = fname.split("-API周报")[0] if "-API周报" in fname else fname.replace(".md", "")
-            html_parts.append(f"    <li class='report-item'><a href='{fname}'>{fname}</a><span class='report-date'>{date_part}</span></li>")
-        html_parts.append("  </ul>")
+            report_items += f'<li class="report-item"><a href="{fname}">{fname}</a><span class="date">{date_part}</span></li>\n'
     else:
-        html_parts.append("  <p>暂无报告，等待首次运行生成。</p>")
+        report_items = '<li class="report-item">暂无报告，等待首次运行</li>'
 
-    html_parts.append("  <div class='footer'>")
-    html_parts.append(f"    <p>自动更新 · 最后刷新: {datetime.now(timezone(timedelta(hours=8))).strftime('%Y-%m-%d %H:%M')}</p>")
-    html_parts.append("  </div>")
-    html_parts.append("</body>")
-    html_parts.append("</html>")
+    html = f'''<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>免费API & 大模型情报周报</title>
+<style>
+*{{margin:0;padding:0;box-sizing:border-box}}
+body{{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f0f2f5;color:#333;min-height:100vh}}
+.header{{background:linear-gradient(135deg,#4a90d9,#357abd);color:white;padding:32px 20px;text-align:center}}
+.header h1{{font-size:22px;margin-bottom:4px}}
+.header p{{font-size:14px;opacity:0.85}}
+.container{{max-width:720px;margin:0 auto;padding:16px}}
+.card{{background:white;border-radius:12px;padding:20px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,0.06)}}
+.card h3{{font-size:15px;margin-bottom:12px;color:#555}}
+.report-list{{list-style:none;padding:0}}
+.report-item{{background:#f8f9fa;margin:6px 0;padding:12px 16px;border-radius:8px;display:flex;justify-content:space-between;align-items:center;transition:transform .1s,background .2s}}
+.report-item:hover{{transform:translateX(4px);background:#e3f2fd}}
+.report-item a{{color:#4a90d9;text-decoration:none;font-weight:500;font-size:15px}}
+.report-item a:hover{{text-decoration:underline}}
+.report-item .date{{color:#999;font-size:13px;white-space:nowrap}}
+.footer{{text-align:center;color:#aaa;font-size:12px;padding:20px}}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>免费API & 大模型情报周报</h1>
+  <p>每周一自动调研 | 最后更新: {update_time}</p>
+</div>
+
+<div class="container">
+  <div class="card">
+    <h3>周报列表（{len(md_files)} 期）</h3>
+    <ul class="report-list">{report_items}</ul>
+  </div>
+</div>
+
+<div class="footer">自动运行 · 每周一 08:00 CST | 数据源: DuckDuckGo 搜索</div>
+</body>
+</html>'''
 
     index_path = os.path.join(REPORTS_DIR, "index.html")
     with open(index_path, "w", encoding="utf-8") as f:
-        f.write("\n".join(html_parts))
+        f.write(html)
 
     print(f"[SAVED] 目录页已更新: {index_path}")
 
